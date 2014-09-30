@@ -110,8 +110,14 @@ server {
 	proxy_buffering off;
 	error_log /proc/self/fd/2;
 	access_log /proc/self/fd/1;
+	
+	{{ if $value.Env.SSL_CERT_NAME }}
+	ssl_certificate /etc/nginx/ssl/{{ $value.Env.SSL_CERT_NAME }}.crt;
+	ssl_certificate_key /etc/nginx/ssl/{{ $value.Env.SSL_CERT_NAME }}key;
+	{{ else }}
 	ssl_certificate /etc/nginx/ssl/nginx.crt;
         ssl_certificate_key /etc/nginx/ssl/nginx.key;
+        {{ end }}
 
 	location / {
 		proxy_pass https://{{ $host }};
