@@ -24,7 +24,13 @@ RUN mkdir /app
 WORKDIR /app
 ADD . /app
 
+RUN mkdir -p /etc/nginx/ssl
+RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt -subj "/C=US/ST=District Of Colombia/L=Washington/O=NohbdySec/OU=Department of Security/CN=example.com"
+
 EXPOSE 80
+EXPOSE 443
 ENV DOCKER_HOST unix:///tmp/docker.sock
+
+VOLUME ["/etc/nginx/ssl"]
 
 CMD ["forego", "start", "-r"]
