@@ -6,6 +6,16 @@ server {
 	return 503;
 }
 
+server {
+	listen 443 ssl default_server;
+	server_name _;
+	ssl_certificate /etc/nginx/ssl/nginx.crt;
+        ssl_certificate_key /etc/nginx/ssl/nginx.key;
+	error_log /proc/self/fd/2;
+	access_log /proc/self/fd/1;
+	return 503;
+}
+
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
 upstream {{ $host }} {
 
@@ -50,6 +60,61 @@ server {
 
 	location / {
 		proxy_pass http://{{ $host }};
+		include /etc/nginx/proxy_params;
+
+		# HTTP 1.1 support
+		proxy_http_version 1.1;
+		proxy_set_header Connection "";
+	}
+}
+{{ end }}
+
+{{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST_SSL" "," }}
+upstream {{ $host }} {
+
+{{ range $index, $value := $containers }}
+
+	{{ $addrLen := len $value.Addresses }}
+	{{/* If only 1 port exposed, use that */}}
+	{{ if eq $addrLen 1 }}
+		{{ with $address := index $value.Addresses 0 }}
+		   # {{$value.Name}}
+		   server {{ $address.IP }}:{{ $address.Port }};
+		{{ end }}
+
+	{{/* If more than one port exposed, use the one matching VIRTUAL_PORT_SSL env var */}}
+	{{ else if $value.Env.VIRTUAL_PORT_SSL }}
+		{{ range $i, $address := $value.Addresses }}
+		   {{ if eq $address.Port $value.Env.VIRTUAL_PORT_SSL }}
+		   # {{$value.Name}}
+		   server {{ $address.IP }}:{{ $address.Port }};
+		   {{ end }}
+		{{ end }}
+
+	{{/* Else default to standard web port 443 */}}
+	{{ else }}
+		{{ range $i, $address := $value.Addresses }}
+			{{ if eq $address.Port "443" }}
+			# {{$value.Name}}
+			server {{ $address.IP }}:{{ $address.Port }};
+			{{ end }}
+		{{ end }}
+	{{ end }}
+{{ end }}
+}
+
+server {
+	gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
+
+	server_name {{ $host }};
+	proxy_buffering off;
+	error_log /proc/self/fd/2;
+	access_log /proc/self/fd/1;
+	ssl_certificate /etc/nginx/ssl/nginx.crt;
+        ssl_certificate_key /etc/nginx/ssl/nginx.key;
+
+	location / {
+		proxy_pass https://{{ $host }};
 		include /etc/nginx/proxy_params;
 
 		# HTTP 1.1 support
