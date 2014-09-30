@@ -7,7 +7,7 @@ See [Automated Nginx Reverse Proxy for Docker][2] for why you might want to use 
 To run it:
 
     $ mkdir -p /opt/nginx/ssl
-    $ docker run -d -p 80:80 -p 443:443 -v /var/run/docker.sock:/tmp/docker.sock rallias/nginx-proxy
+    $ docker run -d -p 80:80 -p 443:443 -v /opt/nginx/ssl:/etc/nginx/ssl -v /var/run/docker.sock:/tmp/docker.sock rallias/nginx-proxy
 
 Then start any containers you want proxied with an env var VIRTUAL_HOST=subdomain.youdomain.com
 
@@ -25,3 +25,5 @@ If your container exposes multiple ports, nginx-proxy will default to the servic
 ### Multiple Hosts
 
 If you need to support multipe virtual hosts for a container, you can separate each enty with commas.  For example, `foo.bar.com,baz.bar.com,bar.com` and each host will be setup the same.
+
+Additionally, if you wish to use a custom certificate, you need to set SSL_CERT_NAME to refer to your individual .crt and .key files into /opt/nginx/ssl/ (you should see an nginx.key and nginx.crt in there already).
