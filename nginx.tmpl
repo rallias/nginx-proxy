@@ -70,7 +70,7 @@ server {
 {{ end }}
 
 {{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST_SSL" "," }}
-upstream {{ $host }} {
+upstream ssl{{ $host }} {
 
 {{ range $index, $value := $containers }}
 
@@ -122,7 +122,7 @@ server {
     {{ end }}
 
 	location / {
-		proxy_pass https://{{ $host }};
+		proxy_pass https://ssl{{ $host }};
 		include /etc/nginx/proxy_params;
 
 		# HTTP 1.1 support
